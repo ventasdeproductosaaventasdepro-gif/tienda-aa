@@ -1,30 +1,41 @@
 /* ============================================
-   VENTAS A&A - PANEL ADMINISTRADOR
+   VENTAS DE PRODUCTOS A&A - ADMIN CON FIREBASE
    ============================================ */
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBs2GXhxPsPJv4tKKNJmOr4DyQe1H15JAc",
+  authDomain: "tienda-aa.firebaseapp.com",
+  projectId: "tienda-aa",
+  storageBucket: "tienda-aa.firebasestorage.app",
+  messagingSenderId: "1023419169592",
+  appId: "1:1023419169592:web:b2c717b01ce49a805e1fcd"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
 const DEFAULT_ADMIN = { user: 'admin', pass: 'admin123' };
+let adminProducts = [];
 
 // ─── INICIALIZACIÓN ──────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  const adminData = JSON.parse(localStorage.getItem('aa_admin_creds') || 'null') || DEFAULT_ADMIN;
   if (!localStorage.getItem('aa_admin_creds')) {
     localStorage.setItem('aa_admin_creds', JSON.stringify(DEFAULT_ADMIN));
   }
-
   const session = localStorage.getItem('aa_admin_session');
   if (session === 'active') showAdminPanel();
 });
 
 // ─── LOGIN ───────────────────────────────────
-function adminLogin() {
+window.adminLogin = function() {
   const user = document.getElementById('adm-user').value.trim();
   const pass = document.getElementById('adm-pass').value;
-
   const creds = JSON.parse(localStorage.getItem('aa_admin_creds') || '{}');
-  const adminUser = creds.user || DEFAULT_ADMIN.user;
-  const adminPass = creds.pass || DEFAULT_ADMIN.pass;
 
-  if (user === adminUser && pass === adminPass) {
+  if (user === (creds.user || DEFAULT_ADMIN.user) && pass === (creds.pass || DEFAULT_ADMIN.pass)) {
     localStorage.setItem('aa_admin_session', 'active');
     showAdminPanel();
   } else {
@@ -32,16 +43,17 @@ function adminLogin() {
   }
 }
 
-function adminLogout() {
+window.adminLogout = function() {
   localStorage.removeItem('aa_admin_session');
   document.getElementById('admin-panel').style.display = 'none';
   document.getElementById('admin-login-screen').style.display = 'flex';
   showToast('Sesión cerrada', 'info');
 }
 
-function showAdminPanel() {
+async function showAdminPanel() {
   document.getElementById('admin-login-screen').style.display = 'none';
   document.getElementById('admin-panel').style.display = 'grid';
+  await loadAdminProducts();
   renderDashboard();
   renderAdminProducts();
   renderOrders();
@@ -49,54 +61,59 @@ function showAdminPanel() {
   loadSettingsForm();
 }
 
+// ─── CARGAR PRODUCTOS DESDE FIREBASE ─────────
+async function loadAdminProducts() {
+  try {
+    const snapshot = await getDocs(collection(db, 'products'));
+    adminProducts = [];
+    snapshot.forEach(docSnap => {
+      adminProducts.push({ id: docSnap.id, ...docSnap.data() });
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('Error conectando con la base de datos', 'error');
+  }
+}
+
 // ─── TABS ─────────────────────────────────────
-function adminTab(name, btn) {
+window.adminTab = function(name, btn) {
   document.querySelectorAll('.admin-tab').forEach(t => { t.style.display = 'none'; t.classList.remove('active'); });
   document.querySelectorAll('.snav-btn').forEach(b => b.classList.remove('active'));
-
   const tab = document.getElementById(`tab-${name}`);
   if (tab) { tab.style.display = 'block'; tab.classList.add('active'); }
   if (btn) btn.classList.add('active');
-
-  const titles = { dashboard: 'Dashboard', products: 'Productos', orders: 'Pedidos', users: 'Usuarios', settings: 'Ajustes' };
+  const titles = { dashboard:'Dashboard', products:'Productos', orders:'Pedidos', users:'Usuarios', settings:'Ajustes' };
   const titleEl = document.getElementById('admin-page-title');
   if (titleEl) titleEl.textContent = titles[name] || name;
 }
 
 // ─── DASHBOARD ───────────────────────────────
 function renderDashboard() {
-  const prods = JSON.parse(localStorage.getItem('aa_products') || '[]');
+  document.getElementById('stat-products').textContent = adminProducts.length;
   const orders = JSON.parse(localStorage.getItem('aa_orders') || '[]');
   const users = JSON.parse(localStorage.getItem('aa_users') || '[]');
-
   const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);
-
-  document.getElementById('stat-products').textContent = prods.length;
   document.getElementById('stat-orders').textContent = orders.length;
   document.getElementById('stat-users').textContent = users.length;
-  document.getElementById('stat-revenue').textContent = formatAdminPrice(revenue);
+  document.getElementById('stat-revenue').textContent = '$' + Number(revenue).toLocaleString('es-CO');
 
-  // Low stock
-  const lowStock = prods.filter(p => p.stock <= 5);
+  const lowStock = adminProducts.filter(p => p.stock <= 5);
   const el = document.getElementById('low-stock-list');
   if (el) {
-    if (lowStock.length === 0) {
-      el.innerHTML = '<p style="color:var(--gray);font-size:.88rem;">✅ Todos los productos tienen stock suficiente</p>';
-    } else {
-      el.innerHTML = lowStock.map(p => `
-        <div class="low-stock-item">
-          <span>${p.name}</span>
-          <span class="stock-badge">${p.stock === 0 ? 'AGOTADO' : `${p.stock} restantes`}</span>
-        </div>`).join('');
-    }
+    el.innerHTML = lowStock.length === 0
+      ? '<p style="color:var(--gray);font-size:.88rem;">✅ Todos los productos tienen stock suficiente</p>'
+      : lowStock.map(p => `
+          <div class="low-stock-item">
+            <span>${p.name}</span>
+            <span class="stock-badge">${p.stock === 0 ? 'AGOTADO' : `${p.stock} restantes`}</span>
+          </div>`).join('');
   }
 }
 
 // ─── PRODUCTOS ───────────────────────────────
 function renderAdminProducts() {
-  const prods = JSON.parse(localStorage.getItem('aa_products') || '[]');
   const query = document.getElementById('admin-search')?.value.toLowerCase() || '';
-  const filtered = prods.filter(p => p.name.toLowerCase().includes(query));
+  const filtered = adminProducts.filter(p => p.name.toLowerCase().includes(query));
   const list = document.getElementById('admin-products-list');
   if (!list) return;
 
@@ -110,8 +127,8 @@ function renderAdminProducts() {
       <img class="admin-prod-img" src="${p.img || ''}" alt="${p.name}" onerror="this.src=''" />
       <div class="admin-prod-info">
         <h4>${p.name}</h4>
-        <p>${categoryLabelAdmin(p.category)} • Stock: <strong>${p.stock}</strong></p>
-        <p class="ap-price">${formatAdminPrice(p.price)}</p>
+        <p>${p.category} • Stock: <strong>${p.stock}</strong></p>
+        <p class="ap-price">$${Number(p.price).toLocaleString('es-CO')}</p>
         <div class="admin-prod-actions">
           <button class="btn-edit" onclick="editProduct('${p.id}')"><i class="fas fa-edit"></i> Editar</button>
           <button class="btn-delete" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i> Eliminar</button>
@@ -120,11 +137,12 @@ function renderAdminProducts() {
     </div>`).join('');
 }
 
-function openProductForm(id = null) {
+window.renderAdminProducts = renderAdminProducts;
+
+window.openProductForm = function(id = null) {
   const titleEl = document.getElementById('product-form-title');
   if (titleEl) titleEl.innerHTML = id ? '<i class="fas fa-edit"></i> Editar producto' : '<i class="fas fa-box"></i> Agregar producto';
 
-  // Reset form
   document.getElementById('pf-id').value = '';
   document.getElementById('pf-name').value = '';
   document.getElementById('pf-category').value = '';
@@ -139,8 +157,7 @@ function openProductForm(id = null) {
   if (preview) { preview.style.display = 'none'; preview.src = ''; }
 
   if (id) {
-    const prods = JSON.parse(localStorage.getItem('aa_products') || '[]');
-    const p = prods.find(x => x.id === id);
+    const p = adminProducts.find(x => x.id === id);
     if (p) {
       document.getElementById('pf-id').value = p.id;
       document.getElementById('pf-name').value = p.name;
@@ -150,11 +167,8 @@ function openProductForm(id = null) {
       document.getElementById('pf-stock').value = p.stock;
       document.getElementById('pf-desc').value = p.desc || '';
       document.getElementById('pf-featured').checked = !!p.featured;
-
-      if (p.img && !p.img.startsWith('data:')) document.getElementById('pf-imgurl').value = p.img;
-      else if (p.img) document.getElementById('pf-img-data').value = p.img;
-
       if (p.img) {
+        document.getElementById('pf-imgurl').value = p.img;
         if (preview) { preview.src = p.img; preview.style.display = 'block'; }
       }
     }
@@ -163,77 +177,73 @@ function openProductForm(id = null) {
   openAdminModal('product-form-modal');
 }
 
-function editProduct(id) { openProductForm(id); }
+window.editProduct = function(id) { window.openProductForm(id); }
 
-function saveProduct(e) {
+window.saveProduct = async function(e) {
   e.preventDefault();
-  const id = document.getElementById('pf-id').value;
-  const name = document.getElementById('pf-name').value.trim();
+  const id       = document.getElementById('pf-id').value;
+  const name     = document.getElementById('pf-name').value.trim();
   const category = document.getElementById('pf-category').value;
-  const price = parseFloat(document.getElementById('pf-price').value);
+  const price    = parseFloat(document.getElementById('pf-price').value);
   const oldPrice = parseFloat(document.getElementById('pf-oldprice').value) || 0;
-  const stock = parseInt(document.getElementById('pf-stock').value);
-  const desc = document.getElementById('pf-desc').value.trim();
-  const imgData = document.getElementById('pf-img-data').value;
-  const imgUrl = document.getElementById('pf-imgurl').value.trim();
+  const stock    = parseInt(document.getElementById('pf-stock').value);
+  const desc     = document.getElementById('pf-desc').value.trim();
+  const imgData  = document.getElementById('pf-img-data').value;
+  const imgUrl   = document.getElementById('pf-imgurl').value.trim();
   const featured = document.getElementById('pf-featured').checked;
+  const img      = imgUrl || imgData || '';
 
-  const img = imgData || imgUrl || '';
+  const productId = id || 'p' + Date.now();
+  const productData = { name, category, price, oldPrice, stock, desc, img, featured };
 
-  let prods = JSON.parse(localStorage.getItem('aa_products') || '[]');
-
-  if (id) {
-    const idx = prods.findIndex(x => x.id === id);
-    if (idx !== -1) {
-      prods[idx] = { ...prods[idx], name, category, price, oldPrice, stock, desc, img, featured };
-    }
-    showToast('Producto actualizado ✅', 'success');
-  } else {
-    const newProd = {
-      id: 'p' + Date.now(),
-      name, category, price, oldPrice, stock, desc, img, featured
-    };
-    prods.unshift(newProd);
-    showToast('Producto agregado ✅', 'success');
+  try {
+    showToast('Guardando producto...', 'info');
+    await setDoc(doc(db, 'products', productId), productData);
+    await loadAdminProducts();
+    renderAdminProducts();
+    renderDashboard();
+    closeProductForm();
+    showToast(id ? '✅ Producto actualizado' : '✅ Producto agregado — visible para todos', 'success');
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('Error guardando el producto', 'error');
   }
-
-  localStorage.setItem('aa_products', JSON.stringify(prods));
-  closeProductForm();
-  renderAdminProducts();
-  renderDashboard();
 }
 
-function deleteProduct(id) {
+window.deleteProduct = async function(id) {
   if (!confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')) return;
-  let prods = JSON.parse(localStorage.getItem('aa_products') || '[]');
-  prods = prods.filter(p => p.id !== id);
-  localStorage.setItem('aa_products', JSON.stringify(prods));
-  renderAdminProducts();
-  renderDashboard();
-  showToast('Producto eliminado', 'info');
+  try {
+    await deleteDoc(doc(db, 'products', id));
+    await loadAdminProducts();
+    renderAdminProducts();
+    renderDashboard();
+    showToast('Producto eliminado', 'info');
+  } catch (error) {
+    showToast('Error eliminando el producto', 'error');
+  }
 }
 
-function previewProductImg(input) {
+window.previewProductImg = function(input) {
   const file = input.files[0];
   if (!file) return;
+  showToast('⚠️ Para que todos vean la foto, usa una URL de imgbb.com', 'info');
   const reader = new FileReader();
   reader.onload = (e) => {
-    const data = e.target.result;
-    document.getElementById('pf-img-data').value = data;
+    document.getElementById('pf-img-data').value = e.target.result;
     const preview = document.getElementById('pf-img-preview');
-    if (preview) { preview.src = data; preview.style.display = 'block'; }
+    if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
   };
   reader.readAsDataURL(file);
 }
 
-function previewImgUrl(url) {
+window.previewImgUrl = function(url) {
   const preview = document.getElementById('pf-img-preview');
   if (!preview) return;
   if (url) { preview.src = url; preview.style.display = 'block'; }
   else { preview.style.display = 'none'; }
 }
 
-function closeProductForm(e) {
+window.closeProductForm = function(e) {
   if (!e || e.target.id === 'product-form-modal') closeAdminModal('product-form-modal');
 }
 
@@ -253,14 +263,13 @@ function renderOrders() {
       <div>
         <h4>📦 ${o.name}</h4>
         <p>📍 ${o.address}, ${o.city}</p>
-        <p>📞 ${o.phone} • 📧 ${o.email}</p>
+        <p>📞 ${o.phone} ${o.email ? '• 📧 ' + o.email : ''}</p>
         <p style="margin-top:6px;font-size:.8rem;color:var(--gray);">${new Date(o.date).toLocaleString('es-CO')}</p>
-        ${o.notes ? `<p style="font-size:.82rem;margin-top:4px;">📝 ${o.notes}</p>` : ''}
         <div style="margin-top:8px;font-size:.82rem;">
           ${(o.items||[]).map(i => `<div>• ${i.name} x${i.qty}</div>`).join('')}
         </div>
       </div>
-      <div class="order-total">${formatAdminPrice(o.total || 0)}</div>
+      <div class="order-total">$${Number(o.total||0).toLocaleString('es-CO')}</div>
     </div>`).join('');
 }
 
@@ -280,40 +289,35 @@ function renderUsers() {
       <div>
         <h4><i class="fas fa-user" style="color:var(--primary)"></i> ${u.name}</h4>
         <p>@${u.username} • ${u.email}</p>
-        <p style="font-size:.78rem;color:var(--gray);">Registro: ${new Date(u.created).toLocaleDateString('es-CO')}</p>
       </div>
       <button class="btn-delete" onclick="deleteUser('${u.id}')"><i class="fas fa-user-times"></i></button>
     </div>`).join('');
 }
 
-function deleteUser(id) {
+window.deleteUser = function(id) {
   if (!confirm('¿Eliminar este usuario?')) return;
   let users = JSON.parse(localStorage.getItem('aa_users') || '[]');
   users = users.filter(u => u.id !== id);
   localStorage.setItem('aa_users', JSON.stringify(users));
   renderUsers();
-  renderDashboard();
   showToast('Usuario eliminado', 'info');
 }
 
 // ─── AJUSTES ─────────────────────────────────
 function loadSettingsForm() {
   const socials = JSON.parse(localStorage.getItem('aa_socials') || '{}');
-  const info = JSON.parse(localStorage.getItem('aa_store_info') || '{}');
-
-  if (document.getElementById('s-facebook')) document.getElementById('s-facebook').value = socials.facebook || '';
+  const info    = JSON.parse(localStorage.getItem('aa_store_info') || '{}');
+  if (document.getElementById('s-facebook'))  document.getElementById('s-facebook').value  = socials.facebook  || '';
   if (document.getElementById('s-instagram')) document.getElementById('s-instagram').value = socials.instagram || '';
-  if (document.getElementById('s-whatsapp')) document.getElementById('s-whatsapp').value = socials.whatsapp || '573146542604';
-  if (document.getElementById('s-tiktok')) document.getElementById('s-tiktok').value = socials.tiktok || '';
-
-  if (document.getElementById('s-storename')) document.getElementById('s-storename').value = info.name || 'Ventas A&A';
-  if (document.getElementById('s-storedesc')) document.getElementById('s-storedesc').value = info.desc || '';
-  if (document.getElementById('s-email')) document.getElementById('s-email').value = info.email || '';
-
+  if (document.getElementById('s-whatsapp'))  document.getElementById('s-whatsapp').value  = socials.whatsapp  || '573146542604';
+  if (document.getElementById('s-tiktok'))    document.getElementById('s-tiktok').value    = socials.tiktok    || '';
+  if (document.getElementById('s-storename')) document.getElementById('s-storename').value = info.name  || 'Ventas A&A';
+  if (document.getElementById('s-storedesc')) document.getElementById('s-storedesc').value = info.desc  || '';
+  if (document.getElementById('s-email'))     document.getElementById('s-email').value     = info.email || '';
   loadLogoPreviewAdmin();
 }
 
-function saveSocials() {
+window.saveSocials = function() {
   const data = {
     facebook:  document.getElementById('s-facebook').value.trim(),
     instagram: document.getElementById('s-instagram').value.trim(),
@@ -324,7 +328,7 @@ function saveSocials() {
   showToast('Redes sociales guardadas ✅', 'success');
 }
 
-function saveStoreInfo() {
+window.saveStoreInfo = function() {
   const data = {
     name:  document.getElementById('s-storename').value.trim(),
     desc:  document.getElementById('s-storedesc').value.trim(),
@@ -334,27 +338,23 @@ function saveStoreInfo() {
   showToast('Información guardada ✅', 'success');
 }
 
-function changeAdminPass() {
+window.changeAdminPass = function() {
   const oldp = document.getElementById('s-oldpass').value;
   const newp = document.getElementById('s-newpass').value;
   const conf = document.getElementById('s-confpass').value;
-
   const creds = JSON.parse(localStorage.getItem('aa_admin_creds') || '{}');
-  const currentPass = creds.pass || DEFAULT_ADMIN.pass;
-
-  if (oldp !== currentPass) { showToast('Contraseña actual incorrecta', 'error'); return; }
-  if (newp.length < 6) { showToast('La nueva contraseña debe tener al menos 6 caracteres', 'error'); return; }
+  if (oldp !== (creds.pass || DEFAULT_ADMIN.pass)) { showToast('Contraseña actual incorrecta', 'error'); return; }
+  if (newp.length < 6) { showToast('Mínimo 6 caracteres', 'error'); return; }
   if (newp !== conf) { showToast('Las contraseñas no coinciden', 'error'); return; }
-
   creds.pass = newp;
   localStorage.setItem('aa_admin_creds', JSON.stringify(creds));
   document.getElementById('s-oldpass').value = '';
   document.getElementById('s-newpass').value = '';
   document.getElementById('s-confpass').value = '';
-  showToast('Contraseña cambiada exitosamente ✅', 'success');
+  showToast('Contraseña cambiada ✅', 'success');
 }
 
-function uploadLogo(input) {
+window.uploadLogo = function(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -366,7 +366,7 @@ function uploadLogo(input) {
   reader.readAsDataURL(file);
 }
 
-function removeLogo() {
+window.removeLogo = function() {
   localStorage.removeItem('aa_logo');
   loadLogoPreviewAdmin();
   showToast('Logo eliminado', 'info');
@@ -376,14 +376,12 @@ function loadLogoPreviewAdmin() {
   const el = document.getElementById('logo-preview-admin');
   if (!el) return;
   const logo = localStorage.getItem('aa_logo');
-  if (logo) {
-    el.innerHTML = `<img src="${logo}" alt="Logo" style="max-height:70px;" />`;
-  } else {
-    el.innerHTML = `<span style="color:var(--gray);font-size:.85rem;">Sin logo</span>`;
-  }
+  el.innerHTML = logo
+    ? `<img src="${logo}" alt="Logo" style="max-height:70px;" />`
+    : `<span style="color:var(--gray);font-size:.85rem;">Sin logo</span>`;
 }
 
-// ─── MODALES ADMIN ────────────────────────────
+// ─── MODALES ─────────────────────────────────
 function openAdminModal(id) {
   const m = document.getElementById(id);
   if (m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('open'), 10); }
@@ -392,10 +390,7 @@ function openAdminModal(id) {
 
 function closeAdminModal(id) {
   const m = document.getElementById(id);
-  if (m) {
-    m.classList.remove('open');
-    setTimeout(() => { m.style.display = 'none'; }, 250);
-  }
+  if (m) { m.classList.remove('open'); setTimeout(() => { m.style.display = 'none'; }, 250); }
   document.body.style.overflow = '';
 }
 
@@ -403,12 +398,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeAdminModal('product-form-modal');
 });
 
-// ─── UTILS ───────────────────────────────────
-function formatAdminPrice(n) {
-  return '$' + Number(n).toLocaleString('es-CO');
-}
-
-function categoryLabelAdmin(cat) {
-  const m = { streaming:'Streaming', hogar:'Hogar', belleza:'Belleza', tecnologia:'Tecnología', relojes:'Relojes', otros:'Otros' };
-  return m[cat] || cat;
+// ─── TOAST ───────────────────────────────────
+function showToast(msg, type = 'info') {
+  const tc = document.getElementById('toast-container');
+  if (!tc) return;
+  const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${msg}`;
+  tc.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut .3s ease forwards';
+    setTimeout(() => toast.remove(), 320);
+  }, 2800);
 }

@@ -1,6 +1,22 @@
 /* ============================================
-   VENTAS A&A - SCRIPT PRINCIPAL
+   VENTAS DE PRODUCTOS A&A - SCRIPT CON FIREBASE
    ============================================ */
+
+// ─── FIREBASE CONFIG ─────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBs2GXhxPsPJv4tKKNJmOr4DyQe1H15JAc",
+  authDomain: "tienda-aa.firebaseapp.com",
+  projectId: "tienda-aa",
+  storageBucket: "tienda-aa.firebasestorage.app",
+  messagingSenderId: "1023419169592",
+  appId: "1:1023419169592:web:b2c717b01ce49a805e1fcd"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
 // ─── ESTADO GLOBAL ─────────────────────────
 let cart = [];
@@ -95,31 +111,125 @@ const defaultProducts = [
     img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80',
     desc: 'Mochila con puerto USB externo, bolsillo antirrobo oculto, compartimento acolchado para laptop 15.6". Impermeable.',
     featured: true
+  },
+  {
+    id: 'p13', name: 'Canva Pro', category: 'streaming',
+    price: 8000, oldPrice: 15000, stock: 50,
+    img: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400&q=80',
+    desc: 'Acceso a Canva Pro. Diseña logos, publicaciones, presentaciones, tarjetas y mucho más. Incluye todas las plantillas premium, imágenes y fuentes exclusivas.',
+    featured: true
   }
 ];
 
 // ─── INICIALIZACIÓN ──────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  loadData();
+document.addEventListener('DOMContentLoaded', async () => {
+  showLoading(true);
+  await loadProductsFromFirebase();
+  showLoading(false);
   renderProducts();
   updateCartBadge();
   loadSocialLinks();
   loadLogoDisplay();
   checkUserSession();
+  loadCartFromStorage();
 });
 
-// ─── DATOS ──────────────────────────────────
-function loadData() {
-  const stored = localStorage.getItem('aa_products');
-  products = stored ? JSON.parse(stored) : defaultProducts;
-  if (!stored) saveProducts();
-
-  const cartStored = localStorage.getItem('aa_cart');
-  cart = cartStored ? JSON.parse(cartStored) : [];
+// ─── LOADING ─────────────────────────────────
+function showLoading(show) {
+  let loader = document.getElementById('page-loader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'page-loader';
+    loader.innerHTML = `
+      <div style="
+        position:fixed;inset:0;background:rgba(255,255,255,.95);
+        z-index:9999;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;gap:16px;
+        font-family:'Nunito',sans-serif;
+      ">
+        <div style="
+          width:50px;height:50px;border:5px solid #f0f0f0;
+          border-top-color:#ff4e00;border-radius:50%;
+          animation:spin .8s linear infinite;
+        "></div>
+        <p style="color:#ff4e00;font-weight:800;font-size:1rem;">Cargando productos...</p>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+    document.body.appendChild(loader);
+  }
+  loader.style.display = show ? 'block' : 'none';
 }
 
-function saveProducts() {
-  localStorage.setItem('aa_products', JSON.stringify(products));
+// ─── FIREBASE — CARGAR PRODUCTOS ─────────────
+async function loadProductsFromFirebase() {
+  try {
+    const snapshot = await getDocs(collection(db, 'products'));
+    if (snapshot.empty) {
+      // Primera vez: subir productos por defecto a Firebase
+      await uploadDefaultProducts();
+    } else {
+      products = [];
+      snapshot.forEach(docSnap => {
+        products.push({ id: docSnap.id, ...docSnap.data() });
+      });
+    }
+  } catch (error) {
+    console.error('Error cargando productos:', error);
+    // Si hay error usar productos locales
+    products = defaultProducts;
+  }
+}
+
+async function uploadDefaultProducts() {
+  try {
+    for (const p of defaultProducts) {
+      await setDoc(doc(db, 'products', p.id), {
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        oldPrice: p.oldPrice || 0,
+        stock: p.stock,
+        img: p.img,
+        desc: p.desc,
+        featured: p.featured || false
+      });
+    }
+    products = [...defaultProducts];
+    showToast('✅ Tienda iniciada correctamente', 'success');
+  } catch (error) {
+    console.error('Error subiendo productos:', error);
+    products = defaultProducts;
+  }
+}
+
+// ─── FIREBASE — GUARDAR PRODUCTO ─────────────
+async function saveProductToFirebase(product) {
+  try {
+    const { id, ...data } = product;
+    await setDoc(doc(db, 'products', id), data);
+    return true;
+  } catch (error) {
+    console.error('Error guardando producto:', error);
+    return false;
+  }
+}
+
+// ─── FIREBASE — ELIMINAR PRODUCTO ─────────────
+async function deleteProductFromFirebase(id) {
+  try {
+    await deleteDoc(doc(db, 'products', id));
+    return true;
+  } catch (error) {
+    console.error('Error eliminando producto:', error);
+    return false;
+  }
+}
+
+// ─── DATOS CARRITO ───────────────────────────
+function loadCartFromStorage() {
+  const cartStored = localStorage.getItem('aa_cart');
+  cart = cartStored ? JSON.parse(cartStored) : [];
+  updateCartBadge();
 }
 
 function saveCart() {
@@ -135,7 +245,7 @@ function renderProducts() {
   const query = document.getElementById('search-input')?.value.toLowerCase() || '';
   let filtered = products.filter(p => {
     const matchCat = currentCategory === 'all' || p.category === currentCategory;
-    const matchQ = p.name.toLowerCase().includes(query) || p.desc.toLowerCase().includes(query);
+    const matchQ = p.name.toLowerCase().includes(query) || (p.desc||'').toLowerCase().includes(query);
     return matchCat && matchQ;
   });
 
@@ -144,11 +254,11 @@ function renderProducts() {
 
   if (filtered.length === 0) {
     grid.innerHTML = '';
-    empty.style.display = 'block';
+    if (empty) empty.style.display = 'block';
     return;
   }
 
-  empty.style.display = 'none';
+  if (empty) empty.style.display = 'none';
 
   grid.innerHTML = filtered.map(p => {
     const hasOldPrice = p.oldPrice && p.oldPrice > 0;
@@ -417,20 +527,21 @@ function submitOrder(e) {
     `👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}, ${city}\n📞 *Teléfono:* ${phone}` +
     (email ? `\n📧 *Correo:* ${email}` : '') + `\n\n` +
     `📦 *Productos:*\n${items}\n\n` +
-    `🛍️ *Subtotal productos:* ${formatPrice(total)}\n` +
+    `🛍️ *Subtotal:* ${formatPrice(total)}\n` +
     `🚚 *Costo de envío:* ${formatPrice(envio)}\n` +
     `💰 *TOTAL A PAGAR: ${formatPrice(totalConEnvio)}*` +
     (notes ? `\n\n📝 *Observaciones:* ${notes}` : '');
 
-  // Decrease stock
-  cart.forEach(item => {
+  // Reducir stock en Firebase
+  cart.forEach(async item => {
     const p = products.find(x => x.id === item.id);
-    if (p) p.stock = Math.max(0, p.stock - item.qty);
+    if (p) {
+      p.stock = Math.max(0, p.stock - item.qty);
+      await saveProductToFirebase(p);
+    }
   });
-  saveProducts();
 
-  // Save order
-  saveOrder({ name, address, city, phone, email, notes, items: [...cart], total: totalConEnvio, date: new Date().toISOString() });
+  saveOrderToFirebase({ name, address, city, phone, email, notes, items: [...cart], total: totalConEnvio, date: new Date().toISOString() });
 
   window.open(`https://wa.me/573146542604?text=${encodeURIComponent(msg)}`, '_blank');
 
@@ -439,11 +550,16 @@ function submitOrder(e) {
   showToast('¡Pedido enviado por WhatsApp! 🎉', 'success');
 }
 
-function saveOrder(order) {
-  const orders = JSON.parse(localStorage.getItem('aa_orders') || '[]');
-  order.id = 'o' + Date.now();
-  orders.unshift(order);
-  localStorage.setItem('aa_orders', JSON.stringify(orders));
+async function saveOrderToFirebase(order) {
+  try {
+    order.id = 'o' + Date.now();
+    await addDoc(collection(db, 'orders'), order);
+  } catch (error) {
+    // Guardar local como respaldo
+    const orders = JSON.parse(localStorage.getItem('aa_orders') || '[]');
+    orders.unshift(order);
+    localStorage.setItem('aa_orders', JSON.stringify(orders));
+  }
 }
 
 // ─── USUARIOS ────────────────────────────────
@@ -555,13 +671,12 @@ function loadLogoDisplay() {
   const logoData = localStorage.getItem('aa_logo');
   const logoDisplay = document.getElementById('logo-display');
   if (!logoDisplay) return;
-
   if (logoData) {
     logoDisplay.innerHTML = `<img src="${logoData}" alt="Logo" style="height:48px;width:48px;object-fit:contain;border-radius:8px;" />`;
   }
 }
 
-// ─── MODALES UTILES ───────────────────────────
+// ─── MODALES ─────────────────────────────────
 function openModal(id) {
   const m = document.getElementById(id);
   if (m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('open'), 10); }
@@ -577,7 +692,6 @@ function closeModal(id) {
   document.body.style.overflow = '';
 }
 
-// Escape key closes modals
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     ['product-modal','cart-modal','checkout-modal','user-modal','product-form-modal'].forEach(closeModal);
@@ -607,3 +721,29 @@ function showToast(msg, type = 'info') {
     setTimeout(() => toast.remove(), 320);
   }, 2800);
 }
+
+// ─── EXPONER FUNCIONES GLOBALES ───────────────
+window.goHome = goHome;
+window.setCategory = setCategory;
+window.filterProducts = filterProducts;
+window.scrollToCatalog = scrollToCatalog;
+window.openProduct = openProduct;
+window.closeProductModal = closeProductModal;
+window.changeQty = changeQty;
+window.addToCartFromModal = addToCartFromModal;
+window.buyDirectWhatsApp = buyDirectWhatsApp;
+window.addToCart = addToCart;
+window.openCart = openCart;
+window.closeCart = closeCart;
+window.updateCartQty = updateCartQty;
+window.removeFromCart = removeFromCart;
+window.clearCart = clearCart;
+window.openCheckout = openCheckout;
+window.closeCheckout = closeCheckout;
+window.submitOrder = submitOrder;
+window.openUserModal = openUserModal;
+window.closeUserModal = closeUserModal;
+window.switchUserTab = switchUserTab;
+window.doLogin = doLogin;
+window.doRegister = doRegister;
+window.doLogout = doLogout;
