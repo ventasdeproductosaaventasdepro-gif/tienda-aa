@@ -382,7 +382,10 @@ function renderCheckoutSummary() {
       const price = p ? p.price : i.price;
       return `<div class="cs-item"><span>${i.name} x${i.qty}</span><span>${formatPrice(price * i.qty)}</span></div>`;
     }).join('')}
-    <div class="cs-total"><span>TOTAL</span><span>${formatPrice(total)}</span></div>`;
+    <div class="cs-item"><span>🛍️ Subtotal</span><span>${formatPrice(total)}</span></div>
+<div class="cs-item"><span>🚚 Envío</span><span>${formatPrice(14500)}</span></div>
+<div class="cs-total"><span>TOTAL A PAGAR</span><span>${formatPrice(total + 14500)}</span></div>
+
 }
 
 function submitOrder(e) {
@@ -407,7 +410,7 @@ function submitOrder(e) {
 
   const msg = `🛒 *NUEVO PEDIDO - Ventas A&A*\n\n` +
     `👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}, ${city}\n📞 *Teléfono:* ${phone}\n📧 *Correo:* ${email}\n\n` +
-    `📦 *Productos:*\n${items}\n\n💰 *TOTAL: ${formatPrice(total)}*` +
+    `📦 *Productos:*\n${items}\n\n💰 *`🛍️ *Subtotal:* ${formatPrice(total)}\n🚚 *Envío:* ${formatPrice(14500)}\n💰 *TOTAL A PAGAR: ${formatPrice(total + 14500)}*` +
     (notes ? `\n\n📝 *Observaciones:* ${notes}` : '');
 
   // Decrease stock
