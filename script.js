@@ -375,6 +375,9 @@ function renderCheckoutSummary() {
     return s + (p ? p.price : i.price) * i.qty;
   }, 0);
 
+  const envio = 14500;
+  const totalConEnvio = total + envio;
+
   el.innerHTML = `
     <strong>📦 Resumen del pedido:</strong>
     ${cart.map(i => {
@@ -382,7 +385,9 @@ function renderCheckoutSummary() {
       const price = p ? p.price : i.price;
       return `<div class="cs-item"><span>${i.name} x${i.qty}</span><span>${formatPrice(price * i.qty)}</span></div>`;
     }).join('')}
-    <div class="cs-total"><span>TOTAL</span><span>${formatPrice(total)}</span></div>`;
+    <div class="cs-item"><span>🛍️ Subtotal productos</span><span>${formatPrice(total)}</span></div>
+    <div class="cs-item"><span>🚚 Costo de envío</span><span>${formatPrice(envio)}</span></div>
+    <div class="cs-total"><span>💰 TOTAL A PAGAR</span><span>${formatPrice(totalConEnvio)}</span></div>`;
 }
 
 function submitOrder(e) {
@@ -399,15 +404,22 @@ function submitOrder(e) {
     return s + (p ? p.price : i.price) * i.qty;
   }, 0);
 
+  const envio = 14500;
+  const totalConEnvio = total + envio;
+
   const items = cart.map(i => {
     const p = products.find(x => x.id === i.id);
     const price = p ? p.price : i.price;
     return `• ${i.name} x${i.qty} = ${formatPrice(price * i.qty)}`;
   }).join('\n');
 
-  const msg = `🛒 *NUEVO PEDIDO - Ventas A&A*\n\n` +
-    `👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}, ${city}\n📞 *Teléfono:* ${phone}\n📧 *Correo:* ${email}\n\n` +
-    `📦 *Productos:*\n${items}\n\n💰 *TOTAL: ${formatPrice(total)}*` +
+  const msg = `🛒 *NUEVO PEDIDO - VENTAS DE PRODUCTOS A&A*\n\n` +
+    `👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}, ${city}\n📞 *Teléfono:* ${phone}` +
+    (email ? `\n📧 *Correo:* ${email}` : '') + `\n\n` +
+    `📦 *Productos:*\n${items}\n\n` +
+    `🛍️ *Subtotal productos:* ${formatPrice(total)}\n` +
+    `🚚 *Costo de envío:* ${formatPrice(envio)}\n` +
+    `💰 *TOTAL A PAGAR: ${formatPrice(totalConEnvio)}*` +
     (notes ? `\n\n📝 *Observaciones:* ${notes}` : '');
 
   // Decrease stock
@@ -418,7 +430,7 @@ function submitOrder(e) {
   saveProducts();
 
   // Save order
-  saveOrder({ name, address, city, phone, email, notes, items: [...cart], total, date: new Date().toISOString() });
+  saveOrder({ name, address, city, phone, email, notes, items: [...cart], total: totalConEnvio, date: new Date().toISOString() });
 
   window.open(`https://wa.me/573146542604?text=${encodeURIComponent(msg)}`, '_blank');
 
