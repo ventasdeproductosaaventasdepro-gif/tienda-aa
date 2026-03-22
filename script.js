@@ -477,15 +477,25 @@ function closeCheckout(e) {
   if (!e || e.target.id === 'checkout-modal') closeModal('checkout-modal');
 }
 
+function tieneEnvio() {
+  // Devuelve true si hay productos que NO son streaming
+  return cart.some(i => {
+    const p = products.find(x => x.id === i.id);
+    return p && p.category !== 'streaming';
+  });
+}
+
 function renderCheckoutSummary() {
   const el = document.getElementById('checkout-summary');
   if (!el) return;
+
   const total = cart.reduce((s, i) => {
     const p = products.find(x => x.id === i.id);
     return s + (p ? p.price : i.price) * i.qty;
   }, 0);
 
-  const envio = 14500;
+  const hayEnvio = tieneEnvio();
+  const envio = hayEnvio ? 14500 : 0;
   const totalConEnvio = total + envio;
 
   el.innerHTML = `
@@ -496,7 +506,10 @@ function renderCheckoutSummary() {
       return `<div class="cs-item"><span>${i.name} x${i.qty}</span><span>${formatPrice(price * i.qty)}</span></div>`;
     }).join('')}
     <div class="cs-item"><span>🛍️ Subtotal productos</span><span>${formatPrice(total)}</span></div>
-    <div class="cs-item"><span>🚚 Costo de envío</span><span>${formatPrice(envio)}</span></div>
+    ${hayEnvio
+      ? `<div class="cs-item"><span>🚚 Costo de envío</span><span>${formatPrice(envio)}</span></div>`
+      : `<div class="cs-item"><span>🚚 Envío</span><span style="color:var(--success)">✅ Sin costo (digital)</span></div>`
+    }
     <div class="cs-total"><span>💰 TOTAL A PAGAR</span><span>${formatPrice(totalConEnvio)}</span></div>`;
 }
 
@@ -514,7 +527,8 @@ function submitOrder(e) {
     return s + (p ? p.price : i.price) * i.qty;
   }, 0);
 
-  const envio = 14500;
+  const hayEnvio = tieneEnvio();
+  const envio = hayEnvio ? 14500 : 0;
   const totalConEnvio = total + envio;
 
   const items = cart.map(i => {
@@ -523,12 +537,16 @@ function submitOrder(e) {
     return `• ${i.name} x${i.qty} = ${formatPrice(price * i.qty)}`;
   }).join('\n');
 
+  const envioTexto = hayEnvio
+    ? `🚚 *Costo de envío:* ${formatPrice(envio)}\n`
+    : `🚚 *Envío:* Sin costo (producto digital)\n`;
+
   const msg = `🛒 *NUEVO PEDIDO - VENTAS DE PRODUCTOS A&A*\n\n` +
     `👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}, ${city}\n📞 *Teléfono:* ${phone}` +
     (email ? `\n📧 *Correo:* ${email}` : '') + `\n\n` +
     `📦 *Productos:*\n${items}\n\n` +
     `🛍️ *Subtotal:* ${formatPrice(total)}\n` +
-    `🚚 *Costo de envío:* ${formatPrice(envio)}\n` +
+    envioTexto +
     `💰 *TOTAL A PAGAR: ${formatPrice(totalConEnvio)}*` +
     (notes ? `\n\n📝 *Observaciones:* ${notes}` : '');
 
