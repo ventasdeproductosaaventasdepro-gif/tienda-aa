@@ -4,7 +4,7 @@
 
 // ─── FIREBASE CONFIG ─────────────────────────
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBs2GXhxPsPJv4tKKNJmOr4DyQe1H15JAc",
@@ -128,8 +128,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   showLoading(false);
   renderProducts();
   updateCartBadge();
-  loadSocialLinks();
-  loadLogoDisplay();
+  await loadSocialLinks();
+  await loadLogoDisplay();
   checkUserSession();
   loadCartFromStorage();
 });
@@ -268,8 +268,7 @@ function renderProducts() {
         <div class="product-img">
           ${p.img ? `<img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-img><i class=fas fa-image></i></div>'" />` : `<div class="no-img"><i class="fas fa-image"></i></div>`}
           ${p.featured ? '<span class="badge-featured">⭐ Destacado</span>' : ''}
-          ${p.showStock && p.stock > 0 && p.stock <= 5 ? `<span class="badge-stock-low">Últimas ${p.stock}</span>` : ''}
-          ${p.showStock && p.stock > 0 ? `<span class="badge-stock-low" style="background:var(--success);">${p.stock} disponibles</span>` : ''}
+          ${p.showStock && p.stock > 0 && p.stock <= 5 ? `<span class="badge-stock-low">Últimas ${p.stock}</span>` : (p.showStock && p.stock > 0 ? `<span class="badge-stock-low" style="background:var(--success);">${p.stock} disponibles</span>` : '')}
           ${noStock && p.showAgotado !== false ? '<div class="badge-no-stock">AGOTADO</div>' : ''}
         </div>
         <div class="product-info">
@@ -670,28 +669,40 @@ function doLogout() {
 }
 
 // ─── REDES SOCIALES ──────────────────────────
-function loadSocialLinks() {
-  const socials = JSON.parse(localStorage.getItem('aa_socials') || '{}');
+async function loadSocialLinks() {
   const container = document.getElementById('social-links');
   if (!container) return;
-
+  let socials = {};
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'socials'));
+    socials = snap.exists() ? snap.data() : JSON.parse(localStorage.getItem('aa_socials') || '{}');
+    if (snap.exists()) localStorage.setItem('aa_socials', JSON.stringify(socials));
+  } catch(e) {
+    socials = JSON.parse(localStorage.getItem('aa_socials') || '{}');
+  }
   const links = [];
-  if (socials.facebook) links.push(`<a href="${socials.facebook}" target="_blank"><i class="fab fa-facebook-f"></i></a>`);
+  if (socials.facebook)  links.push(`<a href="${socials.facebook}" target="_blank"><i class="fab fa-facebook-f"></i></a>`);
   if (socials.instagram) links.push(`<a href="${socials.instagram}" target="_blank"><i class="fab fa-instagram"></i></a>`);
   const wa = socials.whatsapp || '573146542604';
   links.push(`<a href="https://wa.me/${wa}" target="_blank"><i class="fab fa-whatsapp"></i></a>`);
   if (socials.tiktok) links.push(`<a href="${socials.tiktok}" target="_blank"><i class="fab fa-tiktok"></i></a>`);
-
   container.innerHTML = links.join('');
 }
 
 // ─── LOGO ─────────────────────────────────────
-function loadLogoDisplay() {
-  const logoData = localStorage.getItem('aa_logo');
+async function loadLogoDisplay() {
   const logoDisplay = document.getElementById('logo-display');
   if (!logoDisplay) return;
-  if (logoData) {
-    logoDisplay.innerHTML = `<img src="${logoData}" alt="Logo" style="height:48px;width:48px;object-fit:contain;border-radius:8px;" />`;
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'logo'));
+    const url  = snap.exists() ? snap.data().url : (localStorage.getItem('aa_logo') || '');
+    if (url) {
+      logoDisplay.innerHTML = `<img src="${url}" alt="Logo" style="height:48px;width:48px;object-fit:contain;border-radius:8px;" />`;
+      localStorage.setItem('aa_logo', url);
+    }
+  } catch(e) {
+    const url = localStorage.getItem('aa_logo');
+    if (url) logoDisplay.innerHTML = `<img src="${url}" alt="Logo" style="height:48px;width:48px;object-fit:contain;border-radius:8px;" />`;
   }
 }
 

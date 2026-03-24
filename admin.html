@@ -178,9 +178,10 @@
           <label>Precio anterior (tachado)</label>
           <input type="number" id="pf-oldprice" placeholder="0" min="0" />
         </div>
-        <div class="form-row">
-          <label>Stock *</label>
-          <input type="number" id="pf-stock" required placeholder="10" min="0" />
+        <div class="form-row" id="stock-field-row">
+          <label id="stock-label">Stock</label>
+          <input type="number" id="pf-stock" placeholder="10" min="0" />
+          <small style="color:var(--gray);font-size:.75rem;">Solo requerido si activas "Mostrar cantidad"</small>
         </div>
       </div>
       <div class="form-row">

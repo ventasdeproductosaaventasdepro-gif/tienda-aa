@@ -3,7 +3,7 @@
    ============================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc, addDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBs2GXhxPsPJv4tKKNJmOr4DyQe1H15JAc",
@@ -188,14 +188,15 @@ window.saveProduct = async function(e) {
   const category = document.getElementById('pf-category').value;
   const price    = parseFloat(document.getElementById('pf-price').value);
   const oldPrice = parseFloat(document.getElementById('pf-oldprice').value) || 0;
-  const stock    = parseInt(document.getElementById('pf-stock').value);
+  const showStock   = document.getElementById('pf-show-stock')   ? document.getElementById('pf-show-stock').checked   : false;
+  const showAgotado = document.getElementById('pf-show-agotado') ? document.getElementById('pf-show-agotado').checked : true;
+  const stockVal    = document.getElementById('pf-stock').value;
+  const stock       = showStock ? (parseInt(stockVal) || 0) : (stockVal ? parseInt(stockVal) : 999);
   const desc     = document.getElementById('pf-desc').value.trim();
   const imgData  = document.getElementById('pf-img-data').value;
   const imgUrl   = document.getElementById('pf-imgurl').value.trim();
   const featured = document.getElementById('pf-featured').checked;
   const img         = imgUrl || imgData || '';
-  const showStock   = document.getElementById('pf-show-stock')   ? document.getElementById('pf-show-stock').checked   : false;
-  const showAgotado = document.getElementById('pf-show-agotado') ? document.getElementById('pf-show-agotado').checked : true;
 
   const productId = id || 'p' + Date.now();
   const productData = { name, category, price, oldPrice, stock, desc, img, featured, showStock, showAgotado };
@@ -308,18 +309,36 @@ window.deleteUser = function(id) {
 }
 
 // ─── AJUSTES ─────────────────────────────────
-function loadSettingsForm() {
-  const socials = JSON.parse(localStorage.getItem('aa_socials') || '{}');
-  const info    = JSON.parse(localStorage.getItem('aa_store_info') || '{}');
-  const logoUrl = localStorage.getItem('aa_logo') || '';
-  if (document.getElementById('s-facebook'))  document.getElementById('s-facebook').value  = socials.facebook  || '';
-  if (document.getElementById('s-instagram')) document.getElementById('s-instagram').value = socials.instagram || '';
-  if (document.getElementById('s-whatsapp'))  document.getElementById('s-whatsapp').value  = socials.whatsapp  || '573146542604';
-  if (document.getElementById('s-tiktok'))    document.getElementById('s-tiktok').value    = socials.tiktok    || '';
+async function loadSettingsForm() {
+  const info = JSON.parse(localStorage.getItem('aa_store_info') || '{}');
+  // Cargar logo desde Firebase
+  try {
+    const logoSnap = await getDoc(doc(db, 'settings', 'logo'));
+    const logoUrl  = logoSnap.exists() ? (logoSnap.data().url || '') : '';
+    if (logoUrl) localStorage.setItem('aa_logo', logoUrl);
+    if (document.getElementById('s-logourl')) document.getElementById('s-logourl').value = logoUrl;
+  } catch(e) {
+    const logoUrl = localStorage.getItem('aa_logo') || '';
+    if (document.getElementById('s-logourl')) document.getElementById('s-logourl').value = logoUrl;
+  }
+  // Cargar redes desde Firebase
+  try {
+    const socSnap = await getDoc(doc(db, 'settings', 'socials'));
+    const socials = socSnap.exists() ? socSnap.data() : JSON.parse(localStorage.getItem('aa_socials') || '{}');
+    if (document.getElementById('s-facebook'))  document.getElementById('s-facebook').value  = socials.facebook  || '';
+    if (document.getElementById('s-instagram')) document.getElementById('s-instagram').value = socials.instagram || '';
+    if (document.getElementById('s-whatsapp'))  document.getElementById('s-whatsapp').value  = socials.whatsapp  || '573146542604';
+    if (document.getElementById('s-tiktok'))    document.getElementById('s-tiktok').value    = socials.tiktok    || '';
+  } catch(e) {
+    const socials = JSON.parse(localStorage.getItem('aa_socials') || '{}');
+    if (document.getElementById('s-facebook'))  document.getElementById('s-facebook').value  = socials.facebook  || '';
+    if (document.getElementById('s-instagram')) document.getElementById('s-instagram').value = socials.instagram || '';
+    if (document.getElementById('s-whatsapp'))  document.getElementById('s-whatsapp').value  = socials.whatsapp  || '573146542604';
+    if (document.getElementById('s-tiktok'))    document.getElementById('s-tiktok').value    = socials.tiktok    || '';
+  }
   if (document.getElementById('s-storename')) document.getElementById('s-storename').value = info.name  || 'Ventas A&A';
   if (document.getElementById('s-storedesc')) document.getElementById('s-storedesc').value = info.desc  || '';
   if (document.getElementById('s-email'))     document.getElementById('s-email').value     = info.email || '';
-  if (document.getElementById('s-logourl'))   document.getElementById('s-logourl').value   = logoUrl;
   loadLogoPreviewAdmin();
 }
 
@@ -330,23 +349,29 @@ window.previewLogoUrl = function(url) {
   else loadLogoPreviewAdmin();
 };
 
-window.saveLogoFromUrl = function() {
+window.saveLogoFromUrl = async function() {
   const url = document.getElementById('s-logourl') ? document.getElementById('s-logourl').value.trim() : '';
   if (!url) { showToast('Ingresa una URL válida de imgbb.com', 'error'); return; }
-  localStorage.setItem('aa_logo', url);
-  loadLogoPreviewAdmin();
-  showToast('✅ Logo guardado correctamente', 'success');
+  try {
+    await setDoc(doc(db, 'settings', 'logo'), { url });
+    localStorage.setItem('aa_logo', url);
+    loadLogoPreviewAdmin();
+    showToast('✅ Logo guardado — visible para todos', 'success');
+  } catch(e) { showToast('Error guardando logo: ' + e.message, 'error'); }
 };
 
-window.saveSocials = function() {
+window.saveSocials = async function() {
   const data = {
     facebook:  document.getElementById('s-facebook').value.trim(),
     instagram: document.getElementById('s-instagram').value.trim(),
     whatsapp:  document.getElementById('s-whatsapp').value.trim(),
     tiktok:    document.getElementById('s-tiktok').value.trim(),
   };
-  localStorage.setItem('aa_socials', JSON.stringify(data));
-  showToast('Redes sociales guardadas ✅', 'success');
+  try {
+    await setDoc(doc(db, 'settings', 'socials'), data);
+    localStorage.setItem('aa_socials', JSON.stringify(data));
+    showToast('Redes sociales guardadas ✅ — visible para todos', 'success');
+  } catch(e) { showToast('Error guardando redes: ' + e.message, 'error'); }
 }
 
 window.saveStoreInfo = function() {
@@ -376,19 +401,15 @@ window.changeAdminPass = function() {
 }
 
 window.uploadLogo = function(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    localStorage.setItem('aa_logo', e.target.result);
-    loadLogoPreviewAdmin();
-    showToast('Logo actualizado ✅', 'success');
-  };
-  reader.readAsDataURL(file);
+  showToast('⚠️ Usa imgbb.com → pega el enlace en el campo URL', 'info');
 }
 
-window.removeLogo = function() {
+window.removeLogo = async function() {
+  try {
+    await deleteDoc(doc(db, 'settings', 'logo'));
+  } catch(e) {}
   localStorage.removeItem('aa_logo');
+  if (document.getElementById('s-logourl')) document.getElementById('s-logourl').value = '';
   loadLogoPreviewAdmin();
   showToast('Logo eliminado', 'info');
 }
