@@ -1653,3 +1653,37 @@ footer {
 
   #admin-products-list { grid-template-columns: 1fr; }
 }
+/* ── WHATSAPP TOOLTIP ── */
+.whatsapp-fab { overflow: visible !important; }
+.wa-tooltip {
+  position: absolute;
+  right: 68px;
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  background: #fff;
+  color: #1a1a2e;
+  font-family: 'Nunito', sans-serif;
+  font-size: .82rem;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 50px;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(0,0,0,.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s, transform .3s;
+}
+.wa-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #fff;
+  border-right: none;
+}
+.whatsapp-fab:hover .wa-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}

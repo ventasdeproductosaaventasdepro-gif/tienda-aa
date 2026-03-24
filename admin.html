@@ -107,10 +107,12 @@
         <div class="settings-card">
           <h3><i class="fas fa-image"></i> Logo de la tienda</h3>
           <div class="logo-preview" id="logo-preview-admin"></div>
-          <label class="file-upload-label">
-            <i class="fas fa-upload"></i> Subir logo
-            <input type="file" accept="image/*" onchange="uploadLogo(this)" hidden />
-          </label>
+          <div class="form-row" style="margin-top:10px;">
+            <label>URL del logo (desde imgbb.com)</label>
+            <input type="url" id="s-logourl" placeholder="https://i.ibb.co/xxxx/logo.png" oninput="previewLogoUrl(this.value)" />
+            <small style="color:var(--gray);font-size:.75rem;margin-top:4px;display:block;">📸 Sube en imgbb.com → copia "Direct link" → pégalo aquí</small>
+          </div>
+          <button class="btn-primary-full" onclick="saveLogoFromUrl()" style="margin-top:6px;"><i class="fas fa-save"></i> Guardar logo</button>
           <button class="btn-danger-sm" onclick="removeLogo()">Quitar logo</button>
         </div>
         <div class="settings-card">
@@ -201,8 +203,17 @@
       </div>
       <input type="hidden" id="pf-img-data" />
       <div class="form-row">
-        <label>
-          <input type="checkbox" id="pf-featured" /> Producto destacado
+        <label><input type="checkbox" id="pf-featured" /> Producto destacado</label>
+      </div>
+      <div class="form-row" style="background:var(--gray-light);padding:12px;border-radius:8px;gap:10px;">
+        <p style="font-size:.8rem;font-weight:700;color:var(--text-light);margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Opciones de visibilidad</p>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;">
+          <input type="checkbox" id="pf-show-stock" />
+          <span>Mostrar cantidad disponible en la tienda</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;margin-top:6px;">
+          <input type="checkbox" id="pf-show-agotado" checked />
+          <span>Mostrar badge "AGOTADO" cuando stock = 0</span>
         </label>
       </div>
       <button type="submit" class="btn-primary-full">

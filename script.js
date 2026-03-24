@@ -268,8 +268,9 @@ function renderProducts() {
         <div class="product-img">
           ${p.img ? `<img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-img><i class=fas fa-image></i></div>'" />` : `<div class="no-img"><i class="fas fa-image"></i></div>`}
           ${p.featured ? '<span class="badge-featured">⭐ Destacado</span>' : ''}
-          ${p.stock > 0 && p.stock <= 5 ? `<span class="badge-stock-low">Últimas ${p.stock}</span>` : ''}
-          ${noStock ? '<div class="badge-no-stock">AGOTADO</div>' : ''}
+          ${p.showStock && p.stock > 0 && p.stock <= 5 ? `<span class="badge-stock-low">Últimas ${p.stock}</span>` : ''}
+          ${p.showStock && p.stock > 0 ? `<span class="badge-stock-low" style="background:var(--success);">${p.stock} disponibles</span>` : ''}
+          ${noStock && p.showAgotado !== false ? '<div class="badge-no-stock">AGOTADO</div>' : ''}
         </div>
         <div class="product-info">
           <div class="product-category-tag">${categoryLabel(p.category)}</div>

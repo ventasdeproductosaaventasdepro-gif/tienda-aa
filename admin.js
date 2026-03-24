@@ -167,6 +167,8 @@ window.openProductForm = function(id = null) {
       document.getElementById('pf-stock').value = p.stock;
       document.getElementById('pf-desc').value = p.desc || '';
       document.getElementById('pf-featured').checked = !!p.featured;
+      if (document.getElementById('pf-show-stock'))   document.getElementById('pf-show-stock').checked   = !!p.showStock;
+      if (document.getElementById('pf-show-agotado')) document.getElementById('pf-show-agotado').checked = p.showAgotado !== false;
       if (p.img) {
         document.getElementById('pf-imgurl').value = p.img;
         if (preview) { preview.src = p.img; preview.style.display = 'block'; }
@@ -191,10 +193,12 @@ window.saveProduct = async function(e) {
   const imgData  = document.getElementById('pf-img-data').value;
   const imgUrl   = document.getElementById('pf-imgurl').value.trim();
   const featured = document.getElementById('pf-featured').checked;
-  const img      = imgUrl || imgData || '';
+  const img         = imgUrl || imgData || '';
+  const showStock   = document.getElementById('pf-show-stock')   ? document.getElementById('pf-show-stock').checked   : false;
+  const showAgotado = document.getElementById('pf-show-agotado') ? document.getElementById('pf-show-agotado').checked : true;
 
   const productId = id || 'p' + Date.now();
-  const productData = { name, category, price, oldPrice, stock, desc, img, featured };
+  const productData = { name, category, price, oldPrice, stock, desc, img, featured, showStock, showAgotado };
 
   try {
     showToast('Guardando producto...', 'info');
@@ -307,6 +311,7 @@ window.deleteUser = function(id) {
 function loadSettingsForm() {
   const socials = JSON.parse(localStorage.getItem('aa_socials') || '{}');
   const info    = JSON.parse(localStorage.getItem('aa_store_info') || '{}');
+  const logoUrl = localStorage.getItem('aa_logo') || '';
   if (document.getElementById('s-facebook'))  document.getElementById('s-facebook').value  = socials.facebook  || '';
   if (document.getElementById('s-instagram')) document.getElementById('s-instagram').value = socials.instagram || '';
   if (document.getElementById('s-whatsapp'))  document.getElementById('s-whatsapp').value  = socials.whatsapp  || '573146542604';
@@ -314,8 +319,24 @@ function loadSettingsForm() {
   if (document.getElementById('s-storename')) document.getElementById('s-storename').value = info.name  || 'Ventas A&A';
   if (document.getElementById('s-storedesc')) document.getElementById('s-storedesc').value = info.desc  || '';
   if (document.getElementById('s-email'))     document.getElementById('s-email').value     = info.email || '';
+  if (document.getElementById('s-logourl'))   document.getElementById('s-logourl').value   = logoUrl;
   loadLogoPreviewAdmin();
 }
+
+window.previewLogoUrl = function(url) {
+  const el = document.getElementById('logo-preview-admin');
+  if (!el) return;
+  if (url) el.innerHTML = '<img src="'+url+'" alt="Logo" style="max-height:70px;" />';
+  else loadLogoPreviewAdmin();
+};
+
+window.saveLogoFromUrl = function() {
+  const url = document.getElementById('s-logourl') ? document.getElementById('s-logourl').value.trim() : '';
+  if (!url) { showToast('Ingresa una URL válida de imgbb.com', 'error'); return; }
+  localStorage.setItem('aa_logo', url);
+  loadLogoPreviewAdmin();
+  showToast('✅ Logo guardado correctamente', 'success');
+};
 
 window.saveSocials = function() {
   const data = {
