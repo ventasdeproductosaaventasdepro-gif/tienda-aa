@@ -17,6 +17,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
+// ─── IMGBB CONFIG ────────────────────────────
+// Obtén tu API key gratis en: https://api.imgbb.com/
+const IMGBB_KEY = '151ddb52ce6b4df2fafc2c49422cf17b'; // ← Reemplaza con tu clave de imgbb.com/api
+
 const DEFAULT_ADMIN = { user: 'admin', pass: 'admin123' };
 let adminProducts = [];
 
@@ -228,17 +232,10 @@ window.deleteProduct = async function(id) {
   }
 }
 
-window.previewProductImg = function(input) {
+window.previewProductImg = async function(input) {
   const file = input.files[0];
   if (!file) return;
-  showToast('⚠️ Para que todos vean la foto, usa una URL de imgbb.com', 'info');
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    document.getElementById('pf-img-data').value = e.target.result;
-    const preview = document.getElementById('pf-img-preview');
-    if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
-  };
-  reader.readAsDataURL(file);
+  await uploadToImgBB(file, 'product');
 }
 
 window.previewImgUrl = function(url) {
@@ -422,6 +419,79 @@ function loadLogoPreviewAdmin() {
     ? `<img src="${logo}" alt="Logo" style="max-height:70px;" />`
     : `<span style="color:var(--gray);font-size:.85rem;">Sin logo</span>`;
 }
+
+// ─── SUBIDA AUTOMÁTICA A IMGBB ───────────────
+async function uploadToImgBB(file, target) {
+  if (!file) return;
+
+  // Validar tamaño máx 32MB
+  if (file.size > 32 * 1024 * 1024) {
+    showToast('❌ Imagen muy grande (máx 32MB)', 'error');
+    return;
+  }
+
+  // Verificar que la API key está configurada
+  if (!IMGBB_KEY || IMGBB_KEY === 'TU_API_KEY_AQUI') {
+    showToast('⚠️ Configura tu API Key de ImgBB en admin.js', 'error');
+    return;
+  }
+
+  const statusId = target === 'product' ? 'imgbb-status-product' : 'imgbb-status-logo';
+  const setStatus = (msg, type) => {
+    const el = document.getElementById(statusId);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'imgbb-status ' + type;
+    el.style.display = msg ? 'flex' : 'none';
+  };
+
+  setStatus('⏳ Subiendo imagen a ImgBB...', 'loading');
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const form = new FormData();
+    form.append('key', IMGBB_KEY);
+    form.append('image', base64);
+    form.append('name', file.name.replace(/\.[^.]+$/, '') + '_' + Date.now());
+
+    try {
+      const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+      const data = await res.json();
+
+      if (data.success) {
+        const url = data.data.url;
+        if (target === 'product') {
+          document.getElementById('pf-imgurl').value = url;
+          document.getElementById('pf-img-data').value = '';
+          const preview = document.getElementById('pf-img-preview');
+          if (preview) { preview.src = url; preview.style.display = 'block'; }
+          setStatus('✅ Imagen subida correctamente', 'ok');
+        } else if (target === 'logo') {
+          document.getElementById('s-logourl').value = url;
+          const el = document.getElementById('logo-preview-admin');
+          if (el) el.innerHTML = '<img src="' + url + '" alt="Logo" style="max-height:70px;" />';
+          setStatus('✅ Logo subido correctamente — haz clic en Guardar logo', 'ok');
+        }
+        setTimeout(() => setStatus('', ''), 4000);
+      } else {
+        const msg = data.error?.message || 'Error desconocido';
+        setStatus('❌ Error ImgBB: ' + msg, 'error');
+        console.error('ImgBB error:', data);
+      }
+    } catch (err) {
+      setStatus('❌ Error de red. Verifica tu conexión.', 'error');
+      console.error('Upload error:', err);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+window.uploadLogoFile = async function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  await uploadToImgBB(file, 'logo');
+};
 
 // ─── MODALES ─────────────────────────────────
 function openAdminModal(id) {
