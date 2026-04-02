@@ -21,7 +21,7 @@ const db  = getFirestore(app);
 // Obtén tu API key gratis en: https://api.imgbb.com/
 const IMGBB_KEY = '151ddb52ce6b4df2fafc2c49422cf17b'; // ← Reemplaza con tu clave de imgbb.com/api
 
-const DEFAULT_ADMIN = { user: 'admin', pass: 'admin123' };
+const DEFAULT_ADMIN = { user: 'admin', pass: 'Admin9017AA**' };
 let adminProducts = [];
 
 // ─── INICIALIZACIÓN ──────────────────────────
