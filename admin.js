@@ -25,9 +25,19 @@ const DEFAULT_ADMIN = { user: 'admin', pass: 'Admin9017AA**' };
 let adminProducts = [];
 
 // ─── INICIALIZACIÓN ──────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem('aa_admin_creds')) {
-    localStorage.setItem('aa_admin_creds', JSON.stringify(DEFAULT_ADMIN));
+document.addEventListener('DOMContentLoaded', async () => {
+  // Cargar credenciales desde Firebase para sincronizar entre dispositivos
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'admin_creds'));
+    if (snap.exists()) {
+      localStorage.setItem('aa_admin_creds', JSON.stringify(snap.data()));
+    } else if (!localStorage.getItem('aa_admin_creds')) {
+      localStorage.setItem('aa_admin_creds', JSON.stringify(DEFAULT_ADMIN));
+    }
+  } catch(e) {
+    if (!localStorage.getItem('aa_admin_creds')) {
+      localStorage.setItem('aa_admin_creds', JSON.stringify(DEFAULT_ADMIN));
+    }
   }
   const session = localStorage.getItem('aa_admin_session');
   if (session === 'active') showAdminPanel();
@@ -381,7 +391,7 @@ window.saveStoreInfo = function() {
   showToast('Información guardada ✅', 'success');
 }
 
-window.changeAdminPass = function() {
+window.changeAdminPass = async function() {
   const oldp = document.getElementById('s-oldpass').value;
   const newp = document.getElementById('s-newpass').value;
   const conf = document.getElementById('s-confpass').value;
@@ -390,11 +400,18 @@ window.changeAdminPass = function() {
   if (newp.length < 6) { showToast('Mínimo 6 caracteres', 'error'); return; }
   if (newp !== conf) { showToast('Las contraseñas no coinciden', 'error'); return; }
   creds.pass = newp;
+  // Guardar en localStorage
   localStorage.setItem('aa_admin_creds', JSON.stringify(creds));
+  // Guardar en Firebase para sincronizar todos los dispositivos
+  try {
+    await setDoc(doc(db, 'settings', 'admin_creds'), creds);
+    showToast('✅ Contraseña cambiada — sincronizada en todos los dispositivos', 'success');
+  } catch(e) {
+    showToast('✅ Contraseña cambiada localmente (sin conexión a Firebase)', 'success');
+  }
   document.getElementById('s-oldpass').value = '';
   document.getElementById('s-newpass').value = '';
   document.getElementById('s-confpass').value = '';
-  showToast('Contraseña cambiada ✅', 'success');
 }
 
 window.uploadLogo = function(input) {
