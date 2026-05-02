@@ -31,91 +31,91 @@ const defaultProducts = [
   {
     id: 'p1', name: 'Netflix Premium 4K', category: 'streaming',
     price: 35000, oldPrice: 60000, stock: 50,
-    img: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=400&q=80',
+    img: '',
     desc: 'Cuenta Netflix Premium Ultra HD 4K. Disfruta de todo el contenido en la mejor calidad. Pantallas ilimitadas, descarga de contenido, sin anuncios.',
     featured: true
   },
   {
     id: 'p2', name: 'Disney+ Anual', category: 'streaming',
     price: 45000, oldPrice: 0, stock: 30,
-    img: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=400&q=80',
+    img: '',
     desc: 'Acceso completo a Disney+, Marvel, Star Wars y National Geographic. Un año de entretenimiento sin interrupciones.',
     featured: false
   },
   {
     id: 'p3', name: 'Freidora de Aire 5L', category: 'hogar',
     price: 185000, oldPrice: 250000, stock: 15,
-    img: 'https://images.unsplash.com/photo-1585515320310-259814833e62?w=400&q=80',
+    img: '',
     desc: 'Freidora de aire caliente 5 litros, 1700W. Cocina sin aceite de forma saludable. Incluye canasta antiadherente y recetario.',
     featured: true
   },
   {
     id: 'p4', name: 'Licuadora Portátil USB', category: 'hogar',
     price: 65000, oldPrice: 90000, stock: 8,
-    img: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=400&q=80',
+    img: '',
     desc: 'Licuadora personal recargable por USB. Ideal para smoothies, batidos y jugos naturales en cualquier lugar.',
     featured: false
   },
   {
     id: 'p5', name: 'Kit Skincare Coreano', category: 'belleza',
     price: 120000, oldPrice: 150000, stock: 20,
-    img: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=400&q=80',
+    img: '',
     desc: 'Kit completo de cuidado facial coreano. Incluye sérum, tónico, crema hidratante y protector solar. Piel radiante garantizada.',
     featured: true
   },
   {
     id: 'p6', name: 'Rizador Automático 360°', category: 'belleza',
     price: 89000, oldPrice: 130000, stock: 12,
-    img: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80',
+    img: '',
     desc: 'Rizador automático con tecnología cerámica 360°. Rulos definidos sin esfuerzo. Con protector de calor y temperatura ajustable.',
     featured: false
   },
   {
     id: 'p7', name: 'Audífonos Bluetooth Pro', category: 'tecnologia',
     price: 145000, oldPrice: 200000, stock: 25,
-    img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80',
+    img: '',
     desc: 'Audífonos inalámbricos con cancelación de ruido activa. Batería de 30 horas, sonido HiFi, micrófono incorporado.',
     featured: true
   },
   {
     id: 'p8', name: 'Smartwatch Fitness Pro', category: 'relojes',
     price: 195000, oldPrice: 280000, stock: 18,
-    img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80',
+    img: '',
     desc: 'Reloj inteligente con monitor de salud, GPS, resistente al agua 5ATM. Compatible con iOS y Android. Pantalla AMOLED.',
     featured: true
   },
   {
     id: 'p9', name: 'Reloj Elegante Clásico', category: 'relojes',
     price: 250000, oldPrice: 0, stock: 5,
-    img: 'https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?w=400&q=80',
+    img: '',
     desc: 'Reloj análogo con caja de acero inoxidable y correa de cuero genuino. Movimiento japonés de alta precisión.',
     featured: false
   },
   {
     id: 'p10', name: 'Cargador Inalámbrico 3 en 1', category: 'tecnologia',
     price: 85000, oldPrice: 120000, stock: 40,
-    img: 'https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=400&q=80',
+    img: '',
     desc: 'Base de carga inalámbrica para celular, smartwatch y audífonos simultáneamente. Carga rápida 15W.',
     featured: false
   },
   {
     id: 'p11', name: 'Caneca Térmica 1L', category: 'otros',
     price: 55000, oldPrice: 75000, stock: 35,
-    img: 'https://images.unsplash.com/photo-1556742031-c6961e8560b0?w=400&q=80',
+    img: '',
     desc: 'Termo de acero inoxidable. Mantiene bebidas frías 24 horas y calientes 12 horas. Libre de BPA, tapa hermética.',
     featured: false
   },
   {
     id: 'p12', name: 'Mochila Antirrobo USB', category: 'otros',
     price: 165000, oldPrice: 220000, stock: 10,
-    img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80',
+    img: '',
     desc: 'Mochila con puerto USB externo, bolsillo antirrobo oculto, compartimento acolchado para laptop 15.6". Impermeable.',
     featured: true
   },
   {
     id: 'p13', name: 'Canva Pro', category: 'streaming',
     price: 8000, oldPrice: 15000, stock: 50,
-    img: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400&q=80',
+    img: '',
     desc: 'Acceso a Canva Pro. Diseña logos, publicaciones, presentaciones, tarjetas y mucho más. Incluye todas las plantillas premium, imágenes y fuentes exclusivas.',
     featured: true
   }
