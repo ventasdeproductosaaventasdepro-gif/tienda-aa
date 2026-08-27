@@ -1,5 +1,5 @@
 /* ============================================
-   VENTAS DE PRODUCTOS A&A - SCRIPT CON FIREBASE
+   GREED EXPRESS - SCRIPT CON FIREBASE
    ============================================ */
 
 // ─── FIREBASE CONFIG ─────────────────────────
@@ -541,7 +541,7 @@ function submitOrder(e) {
     ? `🚚 *Costo de envío:* ${formatPrice(envio)}\n`
     : `🚚 *Envío:* Sin costo (producto digital)\n`;
 
-  const msg = `🛒 *NUEVO PEDIDO - VENTAS DE PRODUCTOS A&A*\n\n` +
+  const msg = `🛒 *NUEVO PEDIDO - GREED EXPRESS*\n\n` +
     `👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}, ${city}\n📞 *Teléfono:* ${phone}` +
     (email ? `\n📧 *Correo:* ${email}` : '') + `\n\n` +
     `📦 *Productos:*\n${items}\n\n` +

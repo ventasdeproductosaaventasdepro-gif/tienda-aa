@@ -1,4 +1,4 @@
-# 🛒 VENTAS A&A — Tienda Online
+# 🛒 GREED EXPRESS — Tienda Online
 
 Tienda e-commerce completa, moderna y funcional. Lista para subir a GitHub Pages.
 

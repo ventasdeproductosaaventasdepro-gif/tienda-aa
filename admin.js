@@ -1,5 +1,5 @@
 /* ============================================
-   VENTAS DE PRODUCTOS A&A - ADMIN CON FIREBASE
+   GREED EXPRESS - ADMIN CON FIREBASE
    ============================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -333,7 +333,7 @@ async function loadSettingsForm() {
     if (document.getElementById('s-whatsapp'))  document.getElementById('s-whatsapp').value  = socials.whatsapp  || '573146542604';
     if (document.getElementById('s-tiktok'))    document.getElementById('s-tiktok').value    = socials.tiktok    || '';
   }
-  if (document.getElementById('s-storename')) document.getElementById('s-storename').value = info.name  || 'Ventas A&A';
+  if (document.getElementById('s-storename')) document.getElementById('s-storename').value = info.name  || 'GREED EXPRESS';
   if (document.getElementById('s-storedesc')) document.getElementById('s-storedesc').value = info.desc  || '';
   if (document.getElementById('s-email'))     document.getElementById('s-email').value     = info.email || '';
   loadLogoPreviewAdmin();
