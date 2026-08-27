@@ -298,7 +298,7 @@ function setCategory(cat, btn) {
   }
   const titles = {
     all: '✨ Todos los Productos', streaming: '📺 Streaming',
-    hogar: '🏠 Hogar', belleza: '💄 Belleza',
+    hogar: '🏠 Hogar', comidas: '🍔 Comidas', belleza: '💄 Belleza',
     tecnologia: '💻 Tecnología', relojes: '⌚ Relojes', otros: '📦 Otros'
   };
   const titleEl = document.getElementById('catalog-title');
@@ -734,7 +734,7 @@ function formatPrice(n) {
 }
 
 function categoryLabel(cat) {
-  const m = { streaming:'Streaming', hogar:'Hogar', belleza:'Belleza', tecnologia:'Tecnología', relojes:'Relojes', otros:'Otros' };
+  const m = { streaming:'Streaming', hogar:'Hogar', comidas:'Comidas', belleza:'Belleza', tecnologia:'Tecnología', relojes:'Relojes', otros:'Otros' };
   return m[cat] || cat;
 }
 
